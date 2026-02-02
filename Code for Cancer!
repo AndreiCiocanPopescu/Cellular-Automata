@@ -1,0 +1,174 @@
+let system = {
+  drawing: { d: 6 },
+  dimensions: { rows: 0, cols: 0 },
+  cells: [],
+};
+
+let colors = [
+  "#e6194B",
+  "#3cb44b",
+  "#ffe119",
+  "#4363d8",
+  "#f58231",
+  "#911eb4",
+  "#42d4f4",
+  "#f032e6",
+  "#bfef45",
+  "#fabed4",
+  "#469990",
+  "#dcbeff",
+  "#9A6324",
+  "#fffac8",
+  "#800000",
+  "#aaffc3",
+  "#808000",
+  "#ffd8b1",
+  "#000075",
+];
+
+let auto = false;
+let fillColor = colors[3]
+
+function setup() {
+  createCanvas(windowWidth - 20, windowHeight - 20);
+  system.drawing.r = system.drawing.d / 2;
+  system.dimensions.rows = int(height / system.drawing.d);
+  system.dimensions.cols = int(width / system.drawing.d);
+  resetSystem();
+  // ellipseMode(RADIUS)
+  noStroke();
+  noLoop();
+}
+
+function draw() {
+  background("#a9a9a9");
+  // draw all generations
+  fill(fillColor)
+  drawSystem();
+
+  // auto mode automatically advances the generations and then resets if we are at the bottom of the canvas.
+  if (auto) {
+    nextGeneration();
+  }
+}
+
+function drawSystem() {
+  for (let r = 0; r < system.cells.length; r++) {
+    const row = system.cells[r];
+    for (let c = 0; c < row.length; c++) {
+      const cell = row[c];
+      if (cell) {
+        if (cell === "cancer") {
+          fill("#e6194B");
+        } else {
+          fill(fillColor);
+        }
+        circle(
+          system.drawing.r + system.drawing.d * c,
+          system.drawing.r + system.drawing.d * r,
+          system.drawing.d
+        );
+      }
+    }
+  }
+}
+
+function keyPressed() {
+  // press space to advance a generation
+  if (key === " ") {
+    nextGeneration();
+    redraw();
+  }
+
+  // press a to toggle auto advance
+  if (key === "a") {
+    auto = !auto;
+    if (auto) {
+      loop();
+    } else {
+      noLoop();
+    }
+    redraw();
+  }
+}
+
+function livingNeighborCount(i, j) {
+  let livingNeighbors = 0;
+  for (let m = -1; m <= 1; m++) {
+    for (let n = -1; n <= 1; n++) {
+      if (!(m === 0 && n === 0)) {
+        const r = (system.dimensions.rows + i + m) % system.dimensions.rows;
+        const c = (system.dimensions.cols + j + n) % system.dimensions.cols;
+        if (system.cells[r][c]) {
+          livingNeighbors++;
+        }
+      }
+    }
+  }
+  return livingNeighbors;
+}
+
+function nextGeneration() {
+  let newCells = [];
+
+  for (let i = 0; i < system.dimensions.rows; i++) {
+    let row = [];
+    for (let j = 0; j < system.dimensions.cols; j++) {
+      let livingNeighbors = livingNeighborCount(i, j);
+      let cell = system.cells[i][j];
+      let newState = false;
+
+      
+      if (cell === "cancer") {
+        newState = "cancer";
+      }
+      
+      else if (cell === true) {
+        
+        let infected = false;
+        for (let m = -1; m <= 1; m++) {
+          for (let n = -1; n <= 1; n++) {
+            if (m === 0 && n === 0) continue;
+            const r = (system.dimensions.rows + i + m) % system.dimensions.rows;
+            const c = (system.dimensions.cols + j + n) % system.dimensions.cols;
+            if (system.cells[r][c] === "cancer") infected = true;
+          }
+        }
+        if (infected) {
+          newState = "cancer";
+        } else if (livingNeighbors >= 4 || livingNeighbors <= 1) {
+          newState = false;
+        } else {
+          newState = true;
+        }
+      }
+      
+      else {
+        if (livingNeighbors === 3) {
+          newState = random() < 0.00001 ? "cancer" : true;
+        }
+      }
+
+      row.push(newState);
+    }
+    newCells.push(row);
+  }
+
+  system.cells = newCells;
+
+
+
+  
+}
+
+function resetSystem(method = "random", occuranceRate = 0.2) {
+  let cells = [];
+  for (let i = 0; i < system.dimensions.rows; i++) {
+    let row = [];
+    for (let j = 0; j < system.dimensions.cols; j++) {
+      row.push(random() < occuranceRate);
+    }
+    cells.push(row);
+  }
+  system.cells = cells;
+}
